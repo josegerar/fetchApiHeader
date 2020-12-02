@@ -1,26 +1,31 @@
 package com.example.fetchapiheader;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.material.snackbar.Snackbar;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 public class MainActivity extends AppCompatActivity {
 
     TextView txtPagosVolley;
+    TextView txtPagosRetrofit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,8 +33,39 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         txtPagosVolley = (TextView) findViewById(R.id.txtVolley);
+        txtPagosRetrofit = (TextView) findViewById(R.id.txtRetrofit);
 
         getDataVolley();
+        getDataRetrofit();
+    }
+
+    public void getDataRetrofit(){
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api-uat.kushkipagos.com/transfer/v1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        IServiceApi serviceAPi = retrofit.create(IServiceApi.class);
+
+        Call<List<BankModel>> listbankCall = serviceAPi.getListBank();
+
+        listbankCall.enqueue(new Callback<List<BankModel>>() {
+            @Override
+            public void onResponse(Call<List<BankModel>> call, retrofit2.Response<List<BankModel>> response) {
+                if (!response.isSuccessful()){
+                    txtPagosRetrofit.setText("Error code: " + response.code() + response.errorBody().toString());
+                    return;
+                }
+                List<BankModel> listBank = response.body();
+                for (BankModel bank : listBank){
+                        txtPagosRetrofit.append("code: " + bank.getCode() + ", name: " + bank.getName() + "\n");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<BankModel>> call, Throwable t) {
+                txtPagosRetrofit.setText("Error: " + t.getMessage());
+            }
+        });
     }
 
     public void getDataVolley(){
